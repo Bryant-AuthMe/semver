@@ -11,6 +11,7 @@ import { getCommits, getFirstCommitRef } from './git';
 
 import type { Observable } from 'rxjs';
 import type { ReleaseIdentifier } from '../schema';
+import { readPackageJson } from './project';
 /**
  * Return new version or null if nothing changed.
  */
@@ -30,7 +31,11 @@ export function tryBump({
   preid?: string;
 }): Observable<string | null> {
   const initialVersion = '0.0.0';
-  const lastVersion$ = getLastVersion({ tagPrefix }).pipe(
+  const lastVersion$ = readPackageJson(projectRoot).pipe(
+    map((pkg) => pkg.version),
+    switchMap((pkgVersion) =>
+      pkgVersion ? of(pkgVersion) : getLastVersion({ tagPrefix })
+    ),
     catchError(() => {
       logger.warn(
         `🟠 No previous version tag found, fallback to version 0.0.0.
